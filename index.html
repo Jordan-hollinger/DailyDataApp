@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Log</title>
+  <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+  <div id="app">
+    <div class="progress-container">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div class="progress-label" id="progressLabel"></div>
+
+    <div class="card" id="card">
+      <div class="question-area" id="questionArea"></div>
+      <div class="nav-buttons">
+        <button class="btn btn-back" id="btnBack" onclick="prevStep()">Back</button>
+        <button class="btn btn-next" id="btnNext" onclick="nextStep()">Next</button>
+      </div>
+    </div>
+
+    <div class="card completion-card" id="completionCard" style="display:none">
+      <h2>Day logged!</h2>
+      <div id="summaryList" class="summary-list"></div>
+      <div class="completion-actions">
+        <button class="btn btn-export" onclick="storage.exportCSV()">Download CSV</button>
+        <a href="history.html" class="btn btn-history">View History</a>
+        <button class="btn btn-next" onclick="startNew()">Log Another Day</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="static/js/storage.js"></script>
+  <script src="static/js/wizard.js"></script>
+</body>
+</html>

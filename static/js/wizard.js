@@ -8,20 +8,20 @@ const ALL_STEPS = [
   { id: 'worked_in_office',  label: 'Were you in the office?',                         type: 'yn',     showIf: { field: 'worked_today',   value: true } },
   { id: 'exercised',         label: 'Did you exercise?',                                type: 'yn' },
   { id: 'exercise_type',     label: 'What type of exercise?',                           type: 'text',   showIf: { field: 'exercised',      value: true } },
-  { id: 'exercise_minutes',  label: 'How many minutes did you exercise?',               type: 'number', min: 0, max: 600, showIf: { field: 'exercised',      value: true } },
+  { id: 'exercise_minutes',  label: 'How many minutes did you exercise?',               type: 'number', min: 0, max: 600, showIf: { field: 'exercised',     value: true } },
   { id: 'ate_lunch',         label: 'Did you eat lunch?',                               type: 'yn' },
   { id: 'lunch_food',        label: 'What did you eat for lunch?',                      type: 'text',   showIf: { field: 'ate_lunch',      value: true } },
   { id: 'drank_alcohol',     label: 'Did you drink alcohol?',                           type: 'yn' },
-  { id: 'alcohol_drinks',    label: 'How many alcoholic drinks did you have?',          type: 'number', min: 0, max: 50, showIf: { field: 'drank_alcohol',   value: true } },
+  { id: 'alcohol_drinks',    label: 'How many alcoholic drinks did you have?',          type: 'number', min: 0, max: 50, showIf: { field: 'drank_alcohol',  value: true } },
   { id: 'ate_dinner',        label: 'Did you eat dinner?',                              type: 'yn' },
   { id: 'dinner_food',       label: 'What did you eat for dinner?',                     type: 'text',   showIf: { field: 'ate_dinner',     value: true } },
   { id: 'snacked',           label: 'Did you have any snacks?',                         type: 'yn' },
   { id: 'snack_food',        label: 'What did you snack on?',                           type: 'text',   showIf: { field: 'snacked',        value: true } },
   { id: 'read_today',        label: 'Did you read today?',                              type: 'yn' },
-  { id: 'read_minutes',      label: 'How many minutes did you read?',                   type: 'number', min: 0, max: 600, showIf: { field: 'read_today',     value: true } },
+  { id: 'read_minutes',      label: 'How many minutes did you read?',                   type: 'number', min: 0, max: 600, showIf: { field: 'read_today',    value: true } },
   { id: 'learned_today',     label: 'Did you spend time learning something new?',       type: 'yn' },
   { id: 'learning_topic',    label: 'What did you learn about?',                        type: 'text',   showIf: { field: 'learned_today',  value: true } },
-  { id: 'learning_minutes',  label: 'How many minutes did you spend learning?',         type: 'number', min: 0, max: 600, showIf: { field: 'learned_today',  value: true } },
+  { id: 'learning_minutes',  label: 'How many minutes did you spend learning?',         type: 'number', min: 0, max: 600, showIf: { field: 'learned_today', value: true } },
   { id: 'bowel_movements',   label: 'How many bowel movements did you have?',           type: 'number', min: 0, max: 20 },
   { id: 'caffeine_cups',     label: 'How many cups of caffeinated beverages did you drink?', type: 'number', min: 0, max: 20 },
   { id: 'water_cups',        label: 'How many cups of water did you drink?',            type: 'number', min: 0, max: 30 },
@@ -34,7 +34,6 @@ const ALL_STEPS = [
   { id: 'personal_notes',    label: 'Anything unique or notable about today?',          type: 'textarea', hint: 'Optional — travel, illness, special events, etc.' },
 ];
 
-const DRAFT_KEY = 'dailylog_draft';
 let answers = {};
 let currentIndex = 0;
 let visibleSteps = [];
@@ -52,26 +51,29 @@ function today() {
   return new Date().toLocaleDateString('en-CA');
 }
 
-function init() {
+async function wizardInit() {
   const dateStr = today();
-  const saved = storage.getEntry(dateStr);
-  if (saved) {
-    answers = {};
-    for (const [k, v] of Object.entries(saved)) {
-      if (v === null || v === undefined) continue;
-      if (['created_at', 'updated_at'].includes(k)) continue;
-      const step = ALL_STEPS.find(s => s.id === k);
-      if (step && step.type === 'yn') {
-        answers[k] = v === 1 || v === true;
-      } else {
-        answers[k] = v;
+  try {
+    const saved = await sheets.getEntry(dateStr);
+    if (saved) {
+      answers = {};
+      for (const [k, v] of Object.entries(saved)) {
+        if (v === null || v === undefined) continue;
+        const step = ALL_STEPS.find(s => s.id === k);
+        if (step && step.type === 'yn') {
+          answers[k] = v === 1 || v === true;
+        } else {
+          answers[k] = v;
+        }
       }
+    } else {
+      const draft = storage.loadDraft();
+      if (draft) answers = draft;
     }
-  } else {
-    const draft = localStorage.getItem(DRAFT_KEY);
-    if (draft) {
-      try { answers = JSON.parse(draft); } catch (_) {}
-    }
+  } catch (err) {
+    console.warn('Could not load entry from Sheets, using local draft:', err);
+    const draft = storage.loadDraft();
+    if (draft) answers = draft;
   }
   if (!answers.log_date) answers.log_date = dateStr;
   currentIndex = 0;
@@ -80,7 +82,7 @@ function init() {
 }
 
 function saveDraft() {
-  localStorage.setItem(DRAFT_KEY, JSON.stringify(answers));
+  storage.saveDraft(answers);
 }
 
 function renderStep() {
@@ -89,12 +91,10 @@ function renderStep() {
   if (!step) return;
 
   const total = visibleSteps.length;
-  const pct = ((currentIndex + 1) / total) * 100;
-  document.getElementById('progressBar').style.width = `${pct}%`;
+  document.getElementById('progressBar').style.width = `${((currentIndex + 1) / total) * 100}%`;
   document.getElementById('progressLabel').textContent = `Step ${currentIndex + 1} of ${total}`;
 
-  const btnBack = document.getElementById('btnBack');
-  btnBack.disabled = currentIndex === 0;
+  document.getElementById('btnBack').disabled = currentIndex === 0;
   document.getElementById('btnNext').textContent = currentIndex === visibleSteps.length - 1 ? 'Submit' : 'Next';
 
   const area = document.getElementById('questionArea');
@@ -165,10 +165,7 @@ function buildStepHTML(step) {
 
 function focusInput(step) {
   if (['text', 'number', 'date', 'textarea'].includes(step.type)) {
-    requestAnimationFrame(() => {
-      const el = document.getElementById('stepInput');
-      if (el) el.focus();
-    });
+    requestAnimationFrame(() => { const el = document.getElementById('stepInput'); if (el) el.focus(); });
   }
 }
 
@@ -176,9 +173,7 @@ function selectYN(field, value) {
   answers[field] = value;
   saveDraft();
   ALL_STEPS.forEach(s => {
-    if (s.showIf && s.showIf.field === field && s.showIf.value !== value) {
-      delete answers[s.id];
-    }
+    if (s.showIf && s.showIf.field === field && s.showIf.value !== value) delete answers[s.id];
   });
   setTimeout(() => nextStep(), 200);
 }
@@ -191,7 +186,7 @@ function selectLikert(field, value) {
 
 function stepNum(field, delta) {
   const step = ALL_STEPS.find(s => s.id === field);
-  const cur  = answers[field] !== undefined && answers[field] !== null ? answers[field] : 0;
+  const cur  = answers[field] ?? 0;
   let next   = Math.round((cur + delta) * 100) / 100;
   if (step.min !== undefined) next = Math.max(step.min, next);
   if (step.max !== undefined) next = Math.min(step.max, next);
@@ -203,34 +198,40 @@ function stepNum(field, delta) {
 
 function nextStep() {
   buildVisibleSteps();
-  if (currentIndex >= visibleSteps.length - 1) {
-    submitWizard();
-    return;
-  }
+  if (currentIndex >= visibleSteps.length - 1) { submitWizard(); return; }
   currentIndex++;
   renderStep();
 }
 
 function prevStep() {
-  if (currentIndex > 0) {
-    currentIndex--;
-    renderStep();
-  }
+  if (currentIndex > 0) { currentIndex--; renderStep(); }
 }
 
-function submitWizard() {
+async function submitWizard() {
+  const btnNext = document.getElementById('btnNext');
+  btnNext.textContent = 'Saving…';
+  btnNext.disabled = true;
+
   const payload = {};
   for (const [k, v] of Object.entries(answers)) {
     if (v === null || v === undefined || v === '') continue;
-    if (typeof v === 'boolean') {
-      payload[k] = v ? 1 : 0;
+    payload[k] = typeof v === 'boolean' ? (v ? 1 : 0) : v;
+  }
+
+  try {
+    await sheets.saveEntry(payload);
+    storage.clearDraft();
+    showCompletion();
+  } catch (err) {
+    btnNext.textContent = 'Submit';
+    btnNext.disabled = false;
+    if (err.message === 'token_expired') {
+      alert('Your session expired. Please sign in again.');
+      auth.signOut();
     } else {
-      payload[k] = v;
+      alert('Failed to save. Please try again.\n\n' + err.message);
     }
   }
-  storage.saveEntry(payload);
-  localStorage.removeItem(DRAFT_KEY);
-  showCompletion();
 }
 
 function showCompletion() {
@@ -238,8 +239,11 @@ function showCompletion() {
   document.getElementById('progressBar').style.width = '100%';
   document.getElementById('progressLabel').textContent = 'Complete';
 
-  const summaryList = document.getElementById('summaryList');
-  summaryList.innerHTML = ALL_STEPS
+  const url = sheets.getSheetUrl();
+  document.getElementById('sheetLink').href     = url || '#';
+  document.getElementById('sheetLink').style.display = url ? 'inline-flex' : 'none';
+
+  document.getElementById('summaryList').innerHTML = ALL_STEPS
     .filter(s => answers[s.id] !== undefined && answers[s.id] !== null && answers[s.id] !== '')
     .map(s => {
       let val = answers[s.id];
@@ -269,8 +273,15 @@ document.addEventListener('keydown', e => {
   const tag = active ? active.tagName : '';
   if (tag === 'TEXTAREA') return;
   if (tag === 'INPUT' && active.type !== 'number') return;
-  if (e.key === 'Enter')     { e.preventDefault(); nextStep(); }
+  if (e.key === 'Enter')    { e.preventDefault(); nextStep(); }
   if (e.key === 'Backspace' && tag !== 'INPUT') { e.preventDefault(); prevStep(); }
 });
 
-init();
+window.addEventListener('authReady', async (e) => {
+  sheets.init().then(wizardInit).catch(console.error);
+});
+window.addEventListener('authSignedOut', () => {
+  document.getElementById('card').style.display = 'block';
+  document.getElementById('completionCard').style.display = 'none';
+  answers = {};
+});

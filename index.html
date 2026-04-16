@@ -5,9 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Daily Log</title>
   <link rel="stylesheet" href="static/css/style.css">
+  <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
-  <div id="app">
+
+  <!-- Auth screen (shown when not signed in) -->
+  <div id="authScreen" class="auth-screen" style="display:none">
+    <div class="auth-card">
+      <h1 class="auth-title">Daily Log</h1>
+      <p class="auth-subtitle">Your personal daily habit tracker</p>
+      <p id="setupMsg" class="auth-setup-msg" style="display:none">
+        <strong>Setup required.</strong><br>
+        Add your Google Client ID to <code>static/js/config.js</code>.<br>
+        See the <a href="https://github.com/Jordan-hollinger/DailyDataApp#setup" target="_blank">setup instructions</a>.
+      </p>
+      <button id="signInBtn" class="btn btn-google" onclick="auth.signIn()">
+        Sign in with Google
+      </button>
+      <p id="signInError" class="auth-error" style="display:none">Sign-in failed. Please try again.</p>
+      <p class="auth-note">Your data is saved to a Google Sheet in your own Google account.</p>
+    </div>
+  </div>
+
+  <!-- Main app (shown after auth) -->
+  <div id="app" style="display:none">
     <div class="progress-container">
       <div class="progress-bar" id="progressBar"></div>
     </div>
@@ -25,14 +46,23 @@
       <h2>Day logged!</h2>
       <div id="summaryList" class="summary-list"></div>
       <div class="completion-actions">
-        <button class="btn btn-export" onclick="storage.exportCSV()">Download CSV</button>
+        <button class="btn btn-export" onclick="sheets.exportCSV()">Download CSV</button>
+        <a id="sheetLink" href="#" target="_blank" class="btn btn-sheet" style="display:none">Open Google Sheet</a>
         <a href="history.html" class="btn btn-history">View History</a>
         <button class="btn btn-next" onclick="startNew()">Log Another Day</button>
       </div>
     </div>
+
+    <div class="sign-out-bar">
+      <button class="btn-sign-out" onclick="auth.signOut()">Sign out</button>
+    </div>
   </div>
 
+  <script src="static/js/config.js"></script>
   <script src="static/js/storage.js"></script>
+  <script src="static/js/auth.js"></script>
+  <script src="static/js/sheets.js"></script>
   <script src="static/js/wizard.js"></script>
+  <script>auth.init();</script>
 </body>
 </html>

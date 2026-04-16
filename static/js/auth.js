@@ -70,6 +70,8 @@ const auth = (() => {
 
       const stored = getStoredToken();
       if (stored) {
+        document.getElementById('authScreen').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
         window.dispatchEvent(new CustomEvent('authReady', { detail: { token: stored } }));
         return;
       }
@@ -83,6 +85,7 @@ const auth = (() => {
       try {
         const token = await requestToken('select_account');
         document.getElementById('authScreen').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
         window.dispatchEvent(new CustomEvent('authReady', { detail: { token } }));
       } catch (err) {
         console.error('Sign-in failed', err);

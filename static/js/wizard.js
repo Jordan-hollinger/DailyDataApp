@@ -181,7 +181,9 @@ function selectYN(field, value) {
 function selectLikert(field, value) {
   answers[field] = value;
   saveDraft();
-  renderStep();
+  document.querySelectorAll('.likert-btn').forEach(btn => {
+    btn.classList.toggle('selected', parseInt(btn.textContent) === value);
+  });
 }
 
 function stepNum(field, delta) {

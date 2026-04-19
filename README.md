@@ -62,6 +62,7 @@ DailyDataApp/
 - **Authorized JavaScript origin:** `https://jordan-hollinger.github.io`
 - **Test users:** jordan.a.hollinger@gmail.com
 - **Client ID:** stored in `static/js/config.js`
+- **`client_secret_*.json`** — this file may exist locally (downloaded from Google Cloud Console) but is **never committed**. It is listed in `.gitignore`. Do not stage or push it.
 
 To add more authorized users later: Google Cloud Console → APIs & Services → OAuth consent screen → Test users.
 
